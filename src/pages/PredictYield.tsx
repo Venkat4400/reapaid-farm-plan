@@ -2,7 +2,7 @@ import { useState } from "react";
 import { CropForm } from "@/components/CropForm";
 import { ResultCard } from "@/components/ResultCard";
 import { Button } from "@/components/ui/button";
-import { Sprout, Lightbulb, ArrowLeft, History } from "lucide-react";
+import { Sprout, Lightbulb, ArrowLeft, History, Brain, Target, TrendingUp } from "lucide-react";
 import { Link } from "react-router-dom";
 
 interface PredictionResult {
@@ -11,22 +11,24 @@ interface PredictionResult {
   confidence: number;
   temperature?: number;
   rainfall?: number;
+  model_accuracy?: {
+    r2_score: number;
+    mae: number;
+    rmse: number;
+  };
 }
 
 export default function PredictYield() {
   const [result, setResult] = useState<PredictionResult | null>(null);
 
   const handlePredict = (formData: any) => {
-    // Simulate ML prediction result
-    const baseYield = Math.floor(Math.random() * 3000) + 3500;
-    const confidence = Math.floor(Math.random() * 20) + 75;
-    
     setResult({
-      yield: baseYield,
+      yield: formData.yield,
       crop: formData.crop,
-      confidence,
+      confidence: formData.confidence,
       temperature: formData.temperature ? parseInt(formData.temperature) : 28,
       rainfall: formData.rainfall ? parseInt(formData.rainfall) : 120,
+      model_accuracy: formData.model_accuracy,
     });
   };
 
@@ -103,6 +105,39 @@ export default function PredictYield() {
                   }}
                 />
                 
+                {/* Model Accuracy Card */}
+                {result.model_accuracy && (
+                  <div className="rounded-xl border border-border bg-card p-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Brain className="h-5 w-5 text-primary" />
+                      <h4 className="font-medium text-foreground">ML Model Accuracy</h4>
+                    </div>
+                    <div className="grid grid-cols-3 gap-4">
+                      <div className="text-center p-3 rounded-lg bg-primary/5">
+                        <Target className="h-4 w-4 text-primary mx-auto mb-1" />
+                        <p className="text-lg font-bold text-primary">
+                          {(result.model_accuracy.r2_score * 100).toFixed(1)}%
+                        </p>
+                        <p className="text-xs text-muted-foreground">R² Score</p>
+                      </div>
+                      <div className="text-center p-3 rounded-lg bg-accent/5">
+                        <TrendingUp className="h-4 w-4 text-accent mx-auto mb-1" />
+                        <p className="text-lg font-bold text-accent">
+                          {result.model_accuracy.mae.toFixed(1)}
+                        </p>
+                        <p className="text-xs text-muted-foreground">MAE</p>
+                      </div>
+                      <div className="text-center p-3 rounded-lg bg-secondary">
+                        <TrendingUp className="h-4 w-4 text-foreground mx-auto mb-1" />
+                        <p className="text-lg font-bold text-foreground">
+                          {result.model_accuracy.rmse.toFixed(1)}
+                        </p>
+                        <p className="text-xs text-muted-foreground">RMSE</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
                 <div className="rounded-xl border border-border bg-card p-4">
                   <h4 className="mb-3 font-medium text-foreground">Recommendations</h4>
                   <ul className="space-y-2 text-sm text-muted-foreground">
@@ -122,10 +157,12 @@ export default function PredictYield() {
                 </div>
 
                 <div className="flex gap-3">
-                  <Button variant="outline" className="flex-1">
-                    <History className="h-4 w-4" />
-                    Save to History
-                  </Button>
+                  <Link to="/history" className="flex-1">
+                    <Button variant="outline" className="w-full">
+                      <History className="h-4 w-4" />
+                      View History
+                    </Button>
+                  </Link>
                   <Button 
                     variant="secondary" 
                     className="flex-1"

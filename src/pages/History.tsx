@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -25,131 +25,154 @@ import {
   TrendingUp,
   TrendingDown,
   Filter,
+  Loader2,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
 
-const historyData = [
-  {
-    id: 1,
-    date: "2024-01-15",
-    crop: "Wheat",
-    region: "North India",
-    soil: "Loamy",
-    predictedYield: 5420,
-    confidence: 89,
-    status: "high",
-  },
-  {
-    id: 2,
-    date: "2024-01-14",
-    crop: "Rice",
-    region: "South India",
-    soil: "Clay",
-    predictedYield: 4850,
-    confidence: 85,
-    status: "high",
-  },
-  {
-    id: 3,
-    date: "2024-01-13",
-    crop: "Corn",
-    region: "West India",
-    soil: "Sandy",
-    predictedYield: 3200,
-    confidence: 72,
-    status: "medium",
-  },
-  {
-    id: 4,
-    date: "2024-01-12",
-    crop: "Soybean",
-    region: "Central India",
-    soil: "Silt",
-    predictedYield: 2800,
-    confidence: 78,
-    status: "medium",
-  },
-  {
-    id: 5,
-    date: "2024-01-11",
-    crop: "Potato",
-    region: "North India",
-    soil: "Loamy",
-    predictedYield: 6100,
-    confidence: 92,
-    status: "high",
-  },
-  {
-    id: 6,
-    date: "2024-01-10",
-    crop: "Cotton",
-    region: "West India",
-    soil: "Sandy",
-    predictedYield: 2100,
-    confidence: 65,
-    status: "low",
-  },
-  {
-    id: 7,
-    date: "2024-01-09",
-    crop: "Sugarcane",
-    region: "South India",
-    soil: "Clay",
-    predictedYield: 7200,
-    confidence: 88,
-    status: "high",
-  },
-  {
-    id: 8,
-    date: "2024-01-08",
-    crop: "Barley",
-    region: "East India",
-    soil: "Peat",
-    predictedYield: 3800,
-    confidence: 76,
-    status: "medium",
-  },
-];
+interface Prediction {
+  id: string;
+  created_at: string;
+  crop: string;
+  region: string;
+  soil_type: string;
+  predicted_yield: number;
+  confidence: number;
+  rainfall: number;
+  temperature: number;
+  humidity: number;
+}
 
-const getStatusBadge = (status: string) => {
-  switch (status) {
-    case "high":
-      return (
-        <Badge className="bg-primary/10 text-primary hover:bg-primary/20">
-          <TrendingUp className="mr-1 h-3 w-3" />
-          High Yield
-        </Badge>
-      );
-    case "medium":
-      return (
-        <Badge className="bg-accent/10 text-accent hover:bg-accent/20">
-          Medium
-        </Badge>
-      );
-    case "low":
-      return (
-        <Badge className="bg-destructive/10 text-destructive hover:bg-destructive/20">
-          <TrendingDown className="mr-1 h-3 w-3" />
-          Low Yield
-        </Badge>
-      );
-    default:
-      return <Badge variant="secondary">{status}</Badge>;
+const getStatusBadge = (confidence: number) => {
+  if (confidence >= 85) {
+    return (
+      <Badge className="bg-primary/10 text-primary hover:bg-primary/20">
+        <TrendingUp className="mr-1 h-3 w-3" />
+        High Yield
+      </Badge>
+    );
+  } else if (confidence >= 70) {
+    return (
+      <Badge className="bg-accent/10 text-accent hover:bg-accent/20">
+        Medium
+      </Badge>
+    );
+  } else {
+    return (
+      <Badge className="bg-destructive/10 text-destructive hover:bg-destructive/20">
+        <TrendingDown className="mr-1 h-3 w-3" />
+        Low Yield
+      </Badge>
+    );
   }
 };
 
 export default function History() {
+  const [predictions, setPredictions] = useState<Prediction[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [cropFilter, setCropFilter] = useState("all");
 
-  const filteredData = historyData.filter((item) => {
+  useEffect(() => {
+    fetchPredictions();
+  }, []);
+
+  const fetchPredictions = async () => {
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from("predictions")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      setPredictions(data || []);
+    } catch (error) {
+      console.error("Error fetching predictions:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load prediction history.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from("predictions")
+        .delete()
+        .eq("id", id);
+
+      if (error) throw error;
+
+      setPredictions(predictions.filter((p) => p.id !== id));
+      toast({
+        title: "Deleted",
+        description: "Prediction removed from history.",
+      });
+    } catch (error) {
+      console.error("Error deleting prediction:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete prediction.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleExportCSV = () => {
+    if (predictions.length === 0) {
+      toast({
+        title: "No Data",
+        description: "No predictions to export.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const headers = ["Date", "Crop", "Region", "Soil Type", "Predicted Yield (kg/ha)", "Confidence (%)"];
+    const rows = predictions.map((p) => [
+      new Date(p.created_at).toLocaleDateString(),
+      p.crop,
+      p.region,
+      p.soil_type,
+      p.predicted_yield.toString(),
+      p.confidence?.toFixed(1) || "N/A",
+    ]);
+
+    const csvContent = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `crop-predictions-${new Date().toISOString().split("T")[0]}.csv`;
+    link.click();
+
+    toast({
+      title: "Exported",
+      description: "Predictions exported to CSV.",
+    });
+  };
+
+  const filteredData = predictions.filter((item) => {
     const matchesSearch =
       item.crop.toLowerCase().includes(searchTerm.toLowerCase()) ||
       item.region.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCrop = cropFilter === "all" || item.crop.toLowerCase() === cropFilter;
     return matchesSearch && matchesCrop;
   });
+
+  const avgYield = predictions.length > 0
+    ? Math.round(predictions.reduce((acc, item) => acc + item.predicted_yield, 0) / predictions.length)
+    : 0;
+
+  const avgConfidence = predictions.length > 0
+    ? Math.round(predictions.reduce((acc, item) => acc + (item.confidence || 0), 0) / predictions.length)
+    : 0;
 
   return (
     <div className="min-h-screen bg-background">
@@ -198,7 +221,7 @@ export default function History() {
               </SelectContent>
             </Select>
           </div>
-          <Button variant="outline">
+          <Button variant="outline" onClick={handleExportCSV}>
             <Download className="h-4 w-4" />
             Export CSV
           </Button>
@@ -208,94 +231,103 @@ export default function History() {
         <div className="mb-8 grid gap-4 sm:grid-cols-3">
           <div className="rounded-xl border border-border bg-card p-4">
             <p className="text-sm text-muted-foreground">Total Predictions</p>
-            <p className="text-2xl font-bold text-foreground">{historyData.length}</p>
+            <p className="text-2xl font-bold text-foreground">{predictions.length}</p>
           </div>
           <div className="rounded-xl border border-border bg-primary/5 p-4">
             <p className="text-sm text-muted-foreground">Average Yield</p>
             <p className="text-2xl font-bold text-primary">
-              {Math.round(
-                historyData.reduce((acc, item) => acc + item.predictedYield, 0) /
-                  historyData.length
-              ).toLocaleString()}{" "}
+              {avgYield.toLocaleString()}{" "}
               <span className="text-sm font-normal text-muted-foreground">kg/ha</span>
             </p>
           </div>
           <div className="rounded-xl border border-border bg-accent/5 p-4">
             <p className="text-sm text-muted-foreground">Avg. Confidence</p>
-            <p className="text-2xl font-bold text-accent">
-              {Math.round(
-                historyData.reduce((acc, item) => acc + item.confidence, 0) /
-                  historyData.length
-              )}
-              %
-            </p>
+            <p className="text-2xl font-bold text-accent">{avgConfidence}%</p>
           </div>
         </div>
 
-        {/* Table */}
-        <div className="rounded-xl border border-border bg-card shadow-soft overflow-hidden">
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-muted/50">
-                <TableHead>Date</TableHead>
-                <TableHead>Crop</TableHead>
-                <TableHead>Region</TableHead>
-                <TableHead>Soil Type</TableHead>
-                <TableHead className="text-right">Predicted Yield</TableHead>
-                <TableHead className="text-center">Confidence</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredData.map((item, index) => (
-                <TableRow
-                  key={item.id}
-                  className={cn(
-                    "animate-fade-in transition-colors hover:bg-muted/50",
-                    index % 2 === 0 ? "bg-background" : "bg-muted/20"
-                  )}
-                  style={{ animationDelay: `${index * 50}ms` }}
-                >
-                  <TableCell className="font-medium">{item.date}</TableCell>
-                  <TableCell>
-                    <span className="font-medium text-foreground">{item.crop}</span>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">{item.region}</TableCell>
-                  <TableCell className="text-muted-foreground">{item.soil}</TableCell>
-                  <TableCell className="text-right font-semibold">
-                    {item.predictedYield.toLocaleString()} kg/ha
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <span
+        {/* Loading State */}
+        {isLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        ) : (
+          <>
+            {/* Table */}
+            <div className="rounded-xl border border-border bg-card shadow-soft overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-muted/50">
+                    <TableHead>Date</TableHead>
+                    <TableHead>Crop</TableHead>
+                    <TableHead>Region</TableHead>
+                    <TableHead>Soil Type</TableHead>
+                    <TableHead className="text-right">Predicted Yield</TableHead>
+                    <TableHead className="text-center">Confidence</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredData.map((item, index) => (
+                    <TableRow
+                      key={item.id}
                       className={cn(
-                        "font-medium",
-                        item.confidence >= 85
-                          ? "text-primary"
-                          : item.confidence >= 70
-                          ? "text-accent"
-                          : "text-destructive"
+                        "animate-fade-in transition-colors hover:bg-muted/50",
+                        index % 2 === 0 ? "bg-background" : "bg-muted/20"
                       )}
+                      style={{ animationDelay: `${index * 50}ms` }}
                     >
-                      {item.confidence}%
-                    </span>
-                  </TableCell>
-                  <TableCell>{getStatusBadge(item.status)}</TableCell>
-                  <TableCell className="text-right">
-                    <Button variant="ghost" size="icon" className="h-8 w-8">
-                      <Trash2 className="h-4 w-4 text-muted-foreground hover:text-destructive" />
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+                      <TableCell className="font-medium">
+                        {new Date(item.created_at).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell>
+                        <span className="font-medium text-foreground capitalize">{item.crop}</span>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground capitalize">{item.region.replace(/-/g, " ")}</TableCell>
+                      <TableCell className="text-muted-foreground capitalize">{item.soil_type}</TableCell>
+                      <TableCell className="text-right font-semibold">
+                        {item.predicted_yield.toLocaleString()} kg/ha
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <span
+                          className={cn(
+                            "font-medium",
+                            item.confidence >= 85
+                              ? "text-primary"
+                              : item.confidence >= 70
+                              ? "text-accent"
+                              : "text-destructive"
+                          )}
+                        >
+                          {item.confidence?.toFixed(1) || "N/A"}%
+                        </span>
+                      </TableCell>
+                      <TableCell>{getStatusBadge(item.confidence || 0)}</TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => handleDelete(item.id)}
+                        >
+                          <Trash2 className="h-4 w-4 text-muted-foreground hover:text-destructive" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
 
-        {filteredData.length === 0 && (
-          <div className="mt-8 text-center text-muted-foreground">
-            No predictions found matching your criteria.
-          </div>
+            {filteredData.length === 0 && !isLoading && (
+              <div className="mt-8 text-center text-muted-foreground">
+                {predictions.length === 0
+                  ? "No predictions yet. Make your first prediction!"
+                  : "No predictions found matching your criteria."}
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>

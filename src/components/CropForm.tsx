@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/select";
 import { Sprout, CloudRain, Thermometer, Droplets, MapPin, Calendar } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { usePrediction } from "@/hooks/usePrediction";
 
 const crops = ["Wheat", "Rice", "Corn", "Soybean", "Potato", "Cotton", "Sugarcane", "Barley"];
 const soilTypes = ["Loamy", "Clay", "Sandy", "Silt", "Peat", "Chalky", "Saline"];
@@ -18,7 +19,7 @@ const regions = ["North India", "South India", "East India", "West India", "Cent
 const seasons = ["Kharif (Monsoon)", "Rabi (Winter)", "Zaid (Summer)"];
 
 interface CropFormProps {
-  onPredict?: (data: FormData) => void;
+  onPredict?: (data: any) => void;
 }
 
 interface FormData {
@@ -41,7 +42,8 @@ export function CropForm({ onPredict }: CropFormProps) {
     temperature: "",
     humidity: "",
   });
-  const [isLoading, setIsLoading] = useState(false);
+  
+  const { predict, isLoading } = usePrediction();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,21 +57,16 @@ export function CropForm({ onPredict }: CropFormProps) {
       return;
     }
 
-    setIsLoading(true);
+    const result = await predict(formData);
     
-    // Simulate prediction
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    
-    if (onPredict) {
-      onPredict(formData);
+    if (result && onPredict) {
+      onPredict({
+        ...formData,
+        yield: result.predicted_yield,
+        confidence: result.confidence,
+        model_accuracy: result.model_accuracy,
+      });
     }
-    
-    toast({
-      title: "Prediction Complete!",
-      description: "Your crop yield prediction has been calculated.",
-    });
-    
-    setIsLoading(false);
   };
 
   return (
