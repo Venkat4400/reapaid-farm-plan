@@ -14,7 +14,120 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      model_stats: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean | null
+          last_trained_at: string | null
+          mae: number | null
+          model_name: string
+          r2_score: number | null
+          rmse: number | null
+          training_samples: number | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          last_trained_at?: string | null
+          mae?: number | null
+          model_name: string
+          r2_score?: number | null
+          rmse?: number | null
+          training_samples?: number | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          last_trained_at?: string | null
+          mae?: number | null
+          model_name?: string
+          r2_score?: number | null
+          rmse?: number | null
+          training_samples?: number | null
+        }
+        Relationships: []
+      }
+      predictions: {
+        Row: {
+          confidence: number | null
+          created_at: string
+          crop: string
+          humidity: number
+          id: string
+          model_accuracy: Json | null
+          predicted_yield: number
+          rainfall: number
+          region: string
+          season: string
+          soil_type: string
+          temperature: number
+          user_id: string
+        }
+        Insert: {
+          confidence?: number | null
+          created_at?: string
+          crop: string
+          humidity: number
+          id?: string
+          model_accuracy?: Json | null
+          predicted_yield: number
+          rainfall: number
+          region: string
+          season: string
+          soil_type: string
+          temperature: number
+          user_id: string
+        }
+        Update: {
+          confidence?: number | null
+          created_at?: string
+          crop?: string
+          humidity?: number
+          id?: string
+          model_accuracy?: Json | null
+          predicted_yield?: number
+          rainfall?: number
+          region?: string
+          season?: string
+          soil_type?: string
+          temperature?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          email: string | null
+          full_name: string | null
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
