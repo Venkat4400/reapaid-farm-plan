@@ -1,7 +1,7 @@
 project_id = "chxkglbcyuekgigmdlfj"
 
 [functions.predict-yield]
-verify_jwt = true
+verify_jwt = false
 
 [functions.get-weather]
 verify_jwt = false
