@@ -1,7 +1,9 @@
+import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { StatCard } from "@/components/StatCard";
 import { YieldChart } from "@/components/YieldChart";
+import { Badge } from "@/components/ui/badge";
 import {
   Sprout,
   TrendingUp,
@@ -11,9 +13,23 @@ import {
   Leaf,
   Droplets,
   Sun,
+  Brain,
+  Target,
+  Users,
+  Loader2,
 } from "lucide-react";
+import { useModelStats } from "@/hooks/useModelStats";
+import { useWeather } from "@/hooks/useWeather";
 
 export default function Dashboard() {
+  const { data: modelData, isLoading: modelLoading, fetchStats } = useModelStats();
+  const { data: weatherData, isLoading: weatherLoading, fetchWeather } = useWeather();
+
+  useEffect(() => {
+    fetchStats();
+    fetchWeather("north-india");
+  }, []);
+
   return (
     <div className="min-h-screen bg-background">
       {/* Hero Section */}
@@ -58,13 +74,70 @@ export default function Dashboard() {
         <div className="absolute -top-6 right-10 hidden h-32 w-32 rounded-full bg-accent/20 blur-2xl md:block" />
       </section>
 
+      {/* Model Stats Section */}
+      {modelData && (
+        <section className="container mx-auto px-4 py-8">
+          <div className="mb-6 flex items-center justify-between">
+            <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
+              <Brain className="h-5 w-5 text-primary" />
+              ML Model Performance
+            </h2>
+            <Badge variant="outline" className="text-primary border-primary">
+              {modelData.model.name}
+            </Badge>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="rounded-xl border border-border bg-card p-4">
+              <div className="flex items-center gap-2 text-muted-foreground mb-2">
+                <Target className="h-4 w-4" />
+                <span className="text-sm">R² Score</span>
+              </div>
+              <p className="text-2xl font-bold text-primary">
+                {(modelData.model.r2Score * 100).toFixed(1)}%
+              </p>
+              <p className="text-xs text-muted-foreground">Model accuracy</p>
+            </div>
+            <div className="rounded-xl border border-border bg-card p-4">
+              <div className="flex items-center gap-2 text-muted-foreground mb-2">
+                <TrendingUp className="h-4 w-4" />
+                <span className="text-sm">MAE</span>
+              </div>
+              <p className="text-2xl font-bold text-accent">
+                {modelData.model.mae?.toFixed(1)} kg
+              </p>
+              <p className="text-xs text-muted-foreground">Mean Absolute Error</p>
+            </div>
+            <div className="rounded-xl border border-border bg-card p-4">
+              <div className="flex items-center gap-2 text-muted-foreground mb-2">
+                <Sprout className="h-4 w-4" />
+                <span className="text-sm">Training Data</span>
+              </div>
+              <p className="text-2xl font-bold text-foreground">
+                {modelData.model.trainingSamples}
+              </p>
+              <p className="text-xs text-muted-foreground">Samples used</p>
+            </div>
+            <div className="rounded-xl border border-border bg-card p-4">
+              <div className="flex items-center gap-2 text-muted-foreground mb-2">
+                <Users className="h-4 w-4" />
+                <span className="text-sm">Active Users</span>
+              </div>
+              <p className="text-2xl font-bold text-foreground">
+                {modelData.stats.uniqueUsers}
+              </p>
+              <p className="text-xs text-muted-foreground">Farmers using predictions</p>
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* Stats Section */}
       <section className="container mx-auto px-4 py-12">
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
           <div className="animate-slide-up stagger-1">
             <StatCard
               title="Total Predictions"
-              value="1,247"
+              value={modelLoading ? "..." : (modelData?.stats.monthPredictions || 0).toLocaleString()}
               subtitle="This month"
               icon={TrendingUp}
               trend={{ value: 12.5, isPositive: true }}
@@ -74,7 +147,7 @@ export default function Dashboard() {
           <div className="animate-slide-up stagger-2">
             <StatCard
               title="Avg. Yield"
-              value="5,420"
+              value={modelLoading ? "..." : (modelData?.stats.avgYield || 0).toLocaleString()}
               subtitle="kg/hectare"
               icon={Sprout}
               trend={{ value: 8.2, isPositive: true }}
@@ -84,8 +157,8 @@ export default function Dashboard() {
           <div className="animate-slide-up stagger-3">
             <StatCard
               title="Weather Score"
-              value="82%"
-              subtitle="Favorable conditions"
+              value={weatherLoading ? "..." : (weatherData?.stats.farmingConditions || "Good")}
+              subtitle="Farming conditions"
               icon={CloudSun}
               variant="accent"
             />
@@ -93,7 +166,7 @@ export default function Dashboard() {
           <div className="animate-slide-up stagger-4">
             <StatCard
               title="Predictions Today"
-              value="34"
+              value={modelLoading ? "..." : (modelData?.stats.todayPredictions || 0).toString()}
               subtitle="Active farmers"
               icon={History}
               variant="default"
@@ -168,9 +241,9 @@ export default function Dashboard() {
               <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-secondary text-secondary-foreground">
                 <Leaf className="h-7 w-7" />
               </div>
-              <h3 className="mb-2 text-lg font-semibold text-foreground">Recommendations</h3>
+              <h3 className="mb-2 text-lg font-semibold text-foreground">AI Recommendations</h3>
               <p className="text-sm text-muted-foreground">
-                Get crop and fertilizer suggestions
+                Get smart crop and fertilizer suggestions
               </p>
             </div>
           </Link>
@@ -183,24 +256,36 @@ export default function Dashboard() {
           <div className="flex flex-col items-center justify-between gap-6 md:flex-row">
             <div className="flex items-center gap-6">
               <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-accent/20">
-                <Sun className="h-10 w-10 text-accent" />
+                {weatherLoading ? (
+                  <Loader2 className="h-10 w-10 text-accent animate-spin" />
+                ) : (
+                  <Sun className="h-10 w-10 text-accent" />
+                )}
               </div>
               <div>
-                <h3 className="text-2xl font-bold text-foreground">28°C</h3>
-                <p className="text-muted-foreground">Current Weather • Partly Cloudy</p>
+                <h3 className="text-2xl font-bold text-foreground">
+                  {weatherLoading ? "..." : `${weatherData?.current?.temperature || 28}°C`}
+                </h3>
+                <p className="text-muted-foreground">
+                  Current Weather • {weatherData?.current?.condition || "Loading..."}
+                </p>
               </div>
             </div>
             
             <div className="flex gap-8">
               <div className="text-center">
                 <Droplets className="mx-auto mb-2 h-6 w-6 text-primary" />
-                <p className="text-lg font-semibold text-foreground">65%</p>
+                <p className="text-lg font-semibold text-foreground">
+                  {weatherData?.current?.humidity || 65}%
+                </p>
                 <p className="text-xs text-muted-foreground">Humidity</p>
               </div>
               <div className="text-center">
                 <CloudSun className="mx-auto mb-2 h-6 w-6 text-accent" />
-                <p className="text-lg font-semibold text-foreground">12mm</p>
-                <p className="text-xs text-muted-foreground">Rainfall</p>
+                <p className="text-lg font-semibold text-foreground">
+                  {weatherData?.stats?.totalRainfall || 12}mm
+                </p>
+                <p className="text-xs text-muted-foreground">Weekly Rainfall</p>
               </div>
             </div>
 
