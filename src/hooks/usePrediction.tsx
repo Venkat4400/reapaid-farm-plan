@@ -42,6 +42,9 @@ export function usePrediction() {
       }
 
       const response = await supabase.functions.invoke("predict-yield", {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
         body: {
           crop: input.crop,
           soil_type: input.soilType,
