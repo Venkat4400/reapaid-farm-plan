@@ -9,9 +9,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Sprout, CloudRain, Thermometer, Droplets, MapPin, Calendar } from "lucide-react";
+import { Sprout, CloudRain, Thermometer, Droplets, MapPin, Calendar, CloudSun, Loader2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { usePrediction } from "@/hooks/usePrediction";
+import { useWeather } from "@/hooks/useWeather";
 
 const crops = ["Wheat", "Rice", "Corn", "Soybean", "Potato", "Cotton", "Sugarcane", "Barley"];
 const soilTypes = ["Loamy", "Clay", "Sandy", "Silt", "Peat", "Chalky", "Saline"];
@@ -44,6 +45,40 @@ export function CropForm({ onPredict }: CropFormProps) {
   });
   
   const { predict, isLoading } = usePrediction();
+  const { fetchWeather, isLoading: isWeatherLoading } = useWeather();
+
+  const handleUseCurrentWeather = async () => {
+    if (!formData.region) {
+      toast({
+        title: "Select a Region",
+        description: "Please select a region first to fetch weather data.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const weatherData = await fetchWeather(formData.region);
+    
+    if (weatherData?.current) {
+      setFormData((prev) => ({
+        ...prev,
+        rainfall: String(weatherData.stats?.totalRainfall || weatherData.current.precipitation || 0),
+        temperature: String(weatherData.current.temperature || 0),
+        humidity: String(weatherData.current.humidity || 0),
+      }));
+      
+      toast({
+        title: "Weather Data Loaded",
+        description: `Current weather for ${weatherData.region} has been applied.`,
+      });
+    } else {
+      toast({
+        title: "Weather Fetch Failed",
+        description: "Could not retrieve weather data. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -162,6 +197,35 @@ export function CropForm({ onPredict }: CropFormProps) {
               ))}
             </SelectContent>
           </Select>
+        </div>
+
+        {/* Weather Auto-fill Section */}
+        <div className="md:col-span-2 flex items-center gap-4 p-4 rounded-lg border border-dashed border-primary/30 bg-primary/5">
+          <div className="flex-1">
+            <p className="text-sm font-medium text-foreground">Auto-fill from Weather</p>
+            <p className="text-xs text-muted-foreground">
+              Fetch current weather data for the selected region
+            </p>
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleUseCurrentWeather}
+            disabled={isWeatherLoading || !formData.region}
+          >
+            {isWeatherLoading ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Loading...
+              </>
+            ) : (
+              <>
+                <CloudSun className="h-4 w-4" />
+                Use Current Weather
+              </>
+            )}
+          </Button>
         </div>
 
         {/* Rainfall */}
