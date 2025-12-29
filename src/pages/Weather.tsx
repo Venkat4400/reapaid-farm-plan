@@ -8,6 +8,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   ArrowLeft,
   CloudSun,
@@ -22,10 +23,12 @@ import {
   RefreshCw,
   MapPin,
   Loader2,
+  Calendar,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useWeather } from "@/hooks/useWeather";
 import { toast } from "@/hooks/use-toast";
+import { CropCalendar } from "@/components/weather/CropCalendar";
 
 const regions = [
   { value: "north-india", label: "North India" },
@@ -56,6 +59,7 @@ const getWeatherIcon = (iconName: string) => {
 
 export default function Weather() {
   const [selectedRegion, setSelectedRegion] = useState("north-india");
+  const [activeTab, setActiveTab] = useState("weather");
   const { data, isLoading, error, fetchWeather } = useWeather();
 
   useEffect(() => {
@@ -120,151 +124,171 @@ export default function Weather() {
       </div>
 
       <div className="container mx-auto px-4 py-8">
-        {error && (
-          <div className="mb-6 rounded-lg bg-destructive/10 p-4 text-destructive">
-            {error}
-          </div>
-        )}
+        {/* Tab Navigation */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
+          <TabsList className="grid w-full max-w-md grid-cols-2">
+            <TabsTrigger value="weather" className="flex items-center gap-2">
+              <CloudSun className="h-4 w-4" />
+              Weather
+            </TabsTrigger>
+            <TabsTrigger value="calendar" className="flex items-center gap-2">
+              <Calendar className="h-4 w-4" />
+              Crop Calendar
+            </TabsTrigger>
+          </TabsList>
 
-        {isLoading && !data ? (
-          <div className="flex items-center justify-center py-20">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          </div>
-        ) : data ? (
-          <>
-            {/* Current Weather */}
-            <div className="mb-8 rounded-2xl border border-border bg-gradient-to-br from-secondary/50 to-accent/20 p-8">
-              <div className="flex flex-col items-center gap-8 md:flex-row md:justify-between">
-                <div className="flex items-center gap-6">
-                  <div className="flex h-24 w-24 items-center justify-center rounded-2xl bg-accent/20">
-                    <CurrentIcon className="h-14 w-14 text-accent animate-pulse-soft" />
-                  </div>
-                  <div>
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-6xl font-bold text-foreground">{data.current.temperature}</span>
-                      <span className="text-2xl text-muted-foreground">°C</span>
-                    </div>
-                    <p className="text-lg text-muted-foreground">{data.current.condition}</p>
-                    <p className="text-sm text-muted-foreground">Feels like {data.current.feelsLike}°C</p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-6 sm:grid-cols-4">
-                  <div className="text-center">
-                    <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
-                      <Droplets className="h-6 w-6 text-primary" />
-                    </div>
-                    <p className="text-xl font-bold text-foreground">{data.current.humidity}%</p>
-                    <p className="text-xs text-muted-foreground">Humidity</p>
-                  </div>
-                  <div className="text-center">
-                    <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-xl bg-accent/10">
-                      <Wind className="h-6 w-6 text-accent" />
-                    </div>
-                    <p className="text-xl font-bold text-foreground">{data.current.windSpeed} km/h</p>
-                    <p className="text-xs text-muted-foreground">Wind Speed</p>
-                  </div>
-                  <div className="text-center">
-                    <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-xl bg-secondary">
-                      <CloudRain className="h-6 w-6 text-secondary-foreground" />
-                    </div>
-                    <p className="text-xl font-bold text-foreground">{data.current.precipitation}mm</p>
-                    <p className="text-xs text-muted-foreground">Precipitation</p>
-                  </div>
-                  <div className="text-center">
-                    <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
-                      <Thermometer className="h-6 w-6 text-primary" />
-                    </div>
-                    <p className="text-xl font-bold text-foreground">{data.current.pressure} hPa</p>
-                    <p className="text-xs text-muted-foreground">Pressure</p>
-                  </div>
-                </div>
+          <TabsContent value="weather" className="mt-6">
+            {error && (
+              <div className="mb-6 rounded-lg bg-destructive/10 p-4 text-destructive">
+                {error}
               </div>
-            </div>
+            )}
 
-            {/* Weekly Forecast */}
-            <div className="mb-8">
-              <h2 className="mb-4 text-xl font-semibold text-foreground">7-Day Forecast</h2>
-              <div className="grid gap-4 sm:grid-cols-7">
-                {data.forecast.map((day, index) => {
-                  const DayIcon = getWeatherIcon(day.icon);
-                  return (
-                    <div
-                      key={day.date}
-                      className="rounded-xl border border-border bg-card p-4 text-center transition-all hover:border-primary/50 hover:shadow-md animate-slide-up"
-                      style={{ animationDelay: `${index * 50}ms` }}
-                    >
-                      <p className="text-sm font-medium text-muted-foreground">{day.day}</p>
-                      <DayIcon className="mx-auto my-3 h-8 w-8 text-accent" />
-                      <p className="text-lg font-bold text-foreground">{day.tempMax}°</p>
-                      <p className="text-sm text-muted-foreground">{day.tempMin}°</p>
-                      <p className="mt-1 text-xs text-muted-foreground">{day.condition}</p>
-                      <div className="mt-2 flex items-center justify-center gap-1 text-xs text-primary">
-                        <Droplets className="h-3 w-3" />
-                        {day.humidity}%
+            {isLoading && !data ? (
+              <div className="flex items-center justify-center py-20">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            ) : data ? (
+              <>
+                {/* Current Weather */}
+                <div className="mb-8 rounded-2xl border border-border bg-gradient-to-br from-secondary/50 to-accent/20 p-8">
+                  <div className="flex flex-col items-center gap-8 md:flex-row md:justify-between">
+                    <div className="flex items-center gap-6">
+                      <div className="flex h-24 w-24 items-center justify-center rounded-2xl bg-accent/20">
+                        <CurrentIcon className="h-14 w-14 text-accent animate-pulse-soft" />
+                      </div>
+                      <div>
+                        <div className="flex items-baseline gap-2">
+                          <span className="text-6xl font-bold text-foreground">{data.current.temperature}</span>
+                          <span className="text-2xl text-muted-foreground">°C</span>
+                        </div>
+                        <p className="text-lg text-muted-foreground">{data.current.condition}</p>
+                        <p className="text-sm text-muted-foreground">Feels like {data.current.feelsLike}°C</p>
                       </div>
                     </div>
-                  );
-                })}
-              </div>
-            </div>
 
-            {/* Stats */}
-            <div className="mb-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-              <StatCard
-                title="Avg. Temperature"
-                value={`${data.stats.avgTemp}°C`}
-                subtitle="This week"
-                icon={Thermometer}
-                variant="accent"
-              />
-              <StatCard
-                title="Total Rainfall"
-                value={`${data.stats.totalRainfall}mm`}
-                subtitle="Expected this week"
-                icon={CloudRain}
-                variant="primary"
-              />
-              <StatCard
-                title="Humidity Range"
-                value={data.stats.humidityRange}
-                subtitle="Weekly variation"
-                icon={Droplets}
-                variant="secondary"
-              />
-              <StatCard
-                title="Farming Conditions"
-                value={data.stats.farmingConditions}
-                subtitle="Overall assessment"
-                icon={CloudSun}
-                variant="default"
-              />
-            </div>
-
-            {/* Recommendations */}
-            <div>
-              <h2 className="mb-4 text-xl font-semibold text-foreground">Farming Recommendations</h2>
-              <div className="space-y-4">
-                {data.recommendations.map((rec, index) => (
-                  <div
-                    key={index}
-                    className={`rounded-xl border p-4 animate-slide-up ${
-                      rec.type === "positive"
-                        ? "border-primary/30 bg-primary/5"
-                        : rec.type === "warning"
-                        ? "border-accent/30 bg-accent/5"
-                        : "border-border bg-card"
-                    }`}
-                    style={{ animationDelay: `${index * 100}ms` }}
-                  >
-                    <h3 className="font-semibold text-foreground">{rec.title}</h3>
-                    <p className="mt-1 text-sm text-muted-foreground">{rec.description}</p>
+                    <div className="grid grid-cols-2 gap-6 sm:grid-cols-4">
+                      <div className="text-center">
+                        <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
+                          <Droplets className="h-6 w-6 text-primary" />
+                        </div>
+                        <p className="text-xl font-bold text-foreground">{data.current.humidity}%</p>
+                        <p className="text-xs text-muted-foreground">Humidity</p>
+                      </div>
+                      <div className="text-center">
+                        <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-xl bg-accent/10">
+                          <Wind className="h-6 w-6 text-accent" />
+                        </div>
+                        <p className="text-xl font-bold text-foreground">{data.current.windSpeed} km/h</p>
+                        <p className="text-xs text-muted-foreground">Wind Speed</p>
+                      </div>
+                      <div className="text-center">
+                        <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-xl bg-secondary">
+                          <CloudRain className="h-6 w-6 text-secondary-foreground" />
+                        </div>
+                        <p className="text-xl font-bold text-foreground">{data.current.precipitation}mm</p>
+                        <p className="text-xs text-muted-foreground">Precipitation</p>
+                      </div>
+                      <div className="text-center">
+                        <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
+                          <Thermometer className="h-6 w-6 text-primary" />
+                        </div>
+                        <p className="text-xl font-bold text-foreground">{data.current.pressure} hPa</p>
+                        <p className="text-xs text-muted-foreground">Pressure</p>
+                      </div>
+                    </div>
                   </div>
-                ))}
-              </div>
-            </div>
-          </>
-        ) : null}
+                </div>
+
+                {/* Weekly Forecast */}
+                <div className="mb-8">
+                  <h2 className="mb-4 text-xl font-semibold text-foreground">7-Day Forecast</h2>
+                  <div className="grid gap-4 sm:grid-cols-7">
+                    {data.forecast.map((day, index) => {
+                      const DayIcon = getWeatherIcon(day.icon);
+                      return (
+                        <div
+                          key={day.date}
+                          className="rounded-xl border border-border bg-card p-4 text-center transition-all hover:border-primary/50 hover:shadow-md animate-slide-up"
+                          style={{ animationDelay: `${index * 50}ms` }}
+                        >
+                          <p className="text-sm font-medium text-muted-foreground">{day.day}</p>
+                          <DayIcon className="mx-auto my-3 h-8 w-8 text-accent" />
+                          <p className="text-lg font-bold text-foreground">{day.tempMax}°</p>
+                          <p className="text-sm text-muted-foreground">{day.tempMin}°</p>
+                          <p className="mt-1 text-xs text-muted-foreground">{day.condition}</p>
+                          <div className="mt-2 flex items-center justify-center gap-1 text-xs text-primary">
+                            <Droplets className="h-3 w-3" />
+                            {day.humidity}%
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Stats */}
+                <div className="mb-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+                  <StatCard
+                    title="Avg. Temperature"
+                    value={`${data.stats.avgTemp}°C`}
+                    subtitle="This week"
+                    icon={Thermometer}
+                    variant="accent"
+                  />
+                  <StatCard
+                    title="Total Rainfall"
+                    value={`${data.stats.totalRainfall}mm`}
+                    subtitle="Expected this week"
+                    icon={CloudRain}
+                    variant="primary"
+                  />
+                  <StatCard
+                    title="Humidity Range"
+                    value={data.stats.humidityRange}
+                    subtitle="Weekly variation"
+                    icon={Droplets}
+                    variant="secondary"
+                  />
+                  <StatCard
+                    title="Farming Conditions"
+                    value={data.stats.farmingConditions}
+                    subtitle="Overall assessment"
+                    icon={CloudSun}
+                    variant="default"
+                  />
+                </div>
+
+                {/* Recommendations */}
+                <div>
+                  <h2 className="mb-4 text-xl font-semibold text-foreground">Farming Recommendations</h2>
+                  <div className="space-y-4">
+                    {data.recommendations.map((rec, index) => (
+                      <div
+                        key={index}
+                        className={`rounded-xl border p-4 animate-slide-up ${
+                          rec.type === "positive"
+                            ? "border-primary/30 bg-primary/5"
+                            : rec.type === "warning"
+                            ? "border-accent/30 bg-accent/5"
+                            : "border-border bg-card"
+                        }`}
+                        style={{ animationDelay: `${index * 100}ms` }}
+                      >
+                        <h3 className="font-semibold text-foreground">{rec.title}</h3>
+                        <p className="mt-1 text-sm text-muted-foreground">{rec.description}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </>
+            ) : null}
+          </TabsContent>
+
+          <TabsContent value="calendar" className="mt-6">
+            <CropCalendar selectedRegion={selectedRegion} />
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );
