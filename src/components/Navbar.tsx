@@ -2,6 +2,8 @@ import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
+import { useLanguage } from "@/contexts/LanguageContext";
+import { LanguageSelector } from "@/components/LanguageSelector";
 import { 
   Sprout, 
   LayoutDashboard, 
@@ -24,18 +26,19 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
-const navLinks = [
-  { to: "/", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/predict", label: "Predict Yield", icon: LineChart },
-  { to: "/history", label: "History", icon: History },
-  { to: "/weather", label: "Weather", icon: CloudSun },
-  { to: "/recommendations", label: "Recommendations", icon: Leaf },
-];
-
 export function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
   const { user, isLoading, signOut } = useAuth();
+  const { t } = useLanguage();
+
+  const navLinks = [
+    { to: "/", label: t("nav.dashboard"), icon: LayoutDashboard },
+    { to: "/predict", label: t("nav.predict"), icon: LineChart },
+    { to: "/history", label: t("nav.history"), icon: History },
+    { to: "/weather", label: t("nav.weather"), icon: CloudSun },
+    { to: "/recommendations", label: t("nav.recommendations"), icon: Leaf },
+  ];
 
   const getInitials = (email: string) => {
     return email.slice(0, 2).toUpperCase();
@@ -77,6 +80,7 @@ export function Navbar() {
 
           {/* User Actions */}
           <div className="flex items-center gap-2">
+            <LanguageSelector className="hidden sm:flex" />
             {isLoading ? (
               <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
             ) : user ? (
@@ -102,13 +106,13 @@ export function Navbar() {
                   <DropdownMenuItem asChild>
                     <Link to="/history" className="cursor-pointer">
                       <History className="mr-2 h-4 w-4" />
-                      My Predictions
+                      {t("nav.history")}
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={signOut} className="cursor-pointer text-destructive">
                     <LogOut className="mr-2 h-4 w-4" />
-                    Sign Out
+                    {t("nav.logout")}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -116,7 +120,7 @@ export function Navbar() {
               <Link to="/auth">
                 <Button variant="outline" size="sm" className="hidden sm:flex">
                   <User className="h-4 w-4" />
-                  Login
+                  {t("nav.login")}
                 </Button>
               </Link>
             )}
@@ -135,6 +139,9 @@ export function Navbar() {
         {isOpen && (
           <div className="md:hidden border-t border-border py-4 animate-slide-up">
             <div className="flex flex-col gap-2">
+              <div className="px-2 pb-2">
+                <LanguageSelector className="w-full" />
+              </div>
               {navLinks.map((link) => {
                 const Icon = link.icon;
                 const isActive = location.pathname === link.to;
@@ -154,7 +161,7 @@ export function Navbar() {
                 <Link to="/auth" onClick={() => setIsOpen(false)}>
                   <Button variant="outline" className="w-full justify-start mt-2">
                     <User className="h-4 w-4" />
-                    Login
+                    {t("nav.login")}
                   </Button>
                 </Link>
               )}
@@ -168,7 +175,7 @@ export function Navbar() {
                   }}
                 >
                   <LogOut className="h-4 w-4" />
-                  Sign Out
+                  {t("nav.logout")}
                 </Button>
               )}
             </div>

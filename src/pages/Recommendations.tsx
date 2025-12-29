@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
@@ -19,6 +19,8 @@ import { FertilizerGuide } from "@/components/recommendations/FertilizerGuide";
 import { CropCharts } from "@/components/recommendations/CropCharts";
 import { getSmartCropRecommendations } from "@/lib/cropRecommendationEngine";
 import { CropInfo } from "@/data/cropData";
+import { useLanguage } from "@/contexts/LanguageContext";
+import { LanguageSelector } from "@/components/LanguageSelector";
 
 export default function Recommendations() {
   const [activeTab, setActiveTab] = useState<"crops" | "fertilizer" | "charts">("crops");
@@ -27,6 +29,7 @@ export default function Recommendations() {
   const [recommendations, setRecommendations] = useState<(CropInfo & { score: number; matchReasons: string[] })[]>([]);
   const [selectedCrop, setSelectedCrop] = useState<CropInfo | undefined>();
   const [hasSearched, setHasSearched] = useState(false);
+  const { t } = useLanguage();
 
   const handleSubmit = async (data: SmartInputData) => {
     setIsLoading(true);
@@ -58,18 +61,19 @@ export default function Recommendations() {
               <div>
                 <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
                   <Sparkles className="h-6 w-6 text-primary" />
-                  Smart Crop Advisor
+                  {t("rec.title")}
                 </h1>
                 <p className="text-muted-foreground">
-                  AI-powered recommendations for Indian farmers
+                  {t("rec.subtitle")}
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-3">
+              <LanguageSelector />
               <div className="flex items-center gap-2 rounded-lg bg-muted px-3 py-2">
                 <BookOpen className="h-4 w-4 text-muted-foreground" />
                 <Label htmlFor="beginner-mode" className="text-sm cursor-pointer">
-                  Beginner Mode
+                  {isBeginnerMode ? t("rec.beginner_mode") : t("rec.advanced_mode")}
                 </Label>
                 <Switch
                   id="beginner-mode"
@@ -100,7 +104,8 @@ export default function Recommendations() {
               <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="crops" className="flex items-center gap-2">
                   <Sprout className="h-4 w-4" />
-                  Crop Recommendations
+                  <span className="hidden sm:inline">{t("rec.crops_tab")}</span>
+                  <span className="sm:hidden">Crops</span>
                   {recommendations.length > 0 && (
                     <Badge variant="secondary" className="ml-1">
                       {recommendations.length}
@@ -109,11 +114,13 @@ export default function Recommendations() {
                 </TabsTrigger>
                 <TabsTrigger value="charts" className="flex items-center gap-2">
                   <BarChart3 className="h-4 w-4" />
-                  Visual Insights
+                  <span className="hidden sm:inline">{t("rec.charts_tab")}</span>
+                  <span className="sm:hidden">Charts</span>
                 </TabsTrigger>
                 <TabsTrigger value="fertilizer" className="flex items-center gap-2">
                   <Beaker className="h-4 w-4" />
-                  Fertilizer Guide
+                  <span className="hidden sm:inline">{t("rec.fertilizer_tab")}</span>
+                  <span className="sm:hidden">Fertilizer</span>
                 </TabsTrigger>
               </TabsList>
 
@@ -168,11 +175,10 @@ export default function Recommendations() {
           <div className="text-center py-12 rounded-xl border border-dashed border-border">
             <Sprout className="h-16 w-16 mx-auto text-primary/50 mb-4" />
             <h3 className="text-xl font-semibold text-foreground mb-2">
-              Get Personalized Crop Recommendations
+              {t("rec.top_recommendations")}
             </h3>
             <p className="text-muted-foreground max-w-md mx-auto">
-              Fill in the form above with your farm details to receive smart, AI-powered
-              crop suggestions tailored to your specific conditions.
+              {t("rec.no_results")}
             </p>
           </div>
         )}
