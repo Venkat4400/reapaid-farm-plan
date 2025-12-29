@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -27,8 +27,11 @@ import {
   Cloud,
   Sprout,
   Loader2,
+  Mic,
 } from "lucide-react";
+import { VoiceInput } from "@/components/VoiceInput";
 import { indianStates, soilTypeInfo, seasonInfo } from "@/data/cropData";
+import { toast } from "@/hooks/use-toast";
 
 interface SmartInputFormProps {
   onSubmit: (data: SmartInputData) => void;
@@ -70,20 +73,139 @@ export function SmartInputForm({
     onSubmit(formData);
   };
 
+  // Voice input handler - parses spoken text to update form
+  const handleVoiceResult = useCallback((text: string) => {
+    const lowerText = text.toLowerCase();
+    
+    // Parse regions
+    const regionMappings: Record<string, string> = {
+      "north": "North India",
+      "south": "South India",
+      "east": "East India",
+      "west": "West India",
+      "central": "Central India",
+      "northeast": "Northeast India",
+    };
+    
+    for (const [key, value] of Object.entries(regionMappings)) {
+      if (lowerText.includes(key)) {
+        setFormData(d => ({ ...d, region: value }));
+        toast({ title: "Region Updated", description: `Set to ${value}` });
+        break;
+      }
+    }
+
+    // Parse soil types
+    const soilMappings: Record<string, string> = {
+      "black": "Black",
+      "red": "Red",
+      "sandy": "Sandy",
+      "loamy": "Loamy",
+      "clay": "Clay",
+      "laterite": "Laterite",
+      "alluvial": "Alluvial",
+    };
+
+    for (const [key, value] of Object.entries(soilMappings)) {
+      if (lowerText.includes(key)) {
+        setFormData(d => ({ ...d, soilType: value }));
+        toast({ title: "Soil Type Updated", description: `Set to ${value}` });
+        break;
+      }
+    }
+
+    // Parse seasons
+    if (lowerText.includes("kharif") || lowerText.includes("monsoon")) {
+      setFormData(d => ({ ...d, season: "Kharif" }));
+      toast({ title: "Season Updated", description: "Set to Kharif (Monsoon)" });
+    } else if (lowerText.includes("rabi") || lowerText.includes("winter")) {
+      setFormData(d => ({ ...d, season: "Rabi" }));
+      toast({ title: "Season Updated", description: "Set to Rabi (Winter)" });
+    } else if (lowerText.includes("zaid") || lowerText.includes("summer")) {
+      setFormData(d => ({ ...d, season: "Zaid" }));
+      toast({ title: "Season Updated", description: "Set to Zaid (Summer)" });
+    }
+
+    // Parse land type
+    if (lowerText.includes("wet") || lowerText.includes("irrigated")) {
+      setFormData(d => ({ ...d, landType: "wet" }));
+      toast({ title: "Land Type Updated", description: "Set to Wet Land (Irrigated)" });
+    } else if (lowerText.includes("dry") || lowerText.includes("rain")) {
+      setFormData(d => ({ ...d, landType: "dry" }));
+      toast({ title: "Land Type Updated", description: "Set to Dry Land (Rain-fed)" });
+    }
+
+    // Parse temperature (e.g., "temperature 25 degrees" or "25 degrees")
+    const tempMatch = lowerText.match(/(\d+)\s*(degree|°|celsius|temp)/);
+    if (tempMatch) {
+      const temp = parseInt(tempMatch[1]);
+      if (temp >= 5 && temp <= 45) {
+        setFormData(d => ({ ...d, temperature: temp }));
+        toast({ title: "Temperature Updated", description: `Set to ${temp}°C` });
+      }
+    }
+
+    // Parse rainfall
+    const rainMatch = lowerText.match(/(\d+)\s*(mm|millimeter|rainfall)/);
+    if (rainMatch) {
+      const rain = parseInt(rainMatch[1]);
+      if (rain >= 100 && rain <= 2000) {
+        setFormData(d => ({ ...d, rainfall: rain }));
+        toast({ title: "Rainfall Updated", description: `Set to ${rain}mm` });
+      }
+    }
+
+    // Parse humidity
+    const humidityMatch = lowerText.match(/(\d+)\s*(%|percent|humidity)/);
+    if (humidityMatch) {
+      const humidity = parseInt(humidityMatch[1]);
+      if (humidity >= 20 && humidity <= 95) {
+        setFormData(d => ({ ...d, humidity }));
+        toast({ title: "Humidity Updated", description: `Set to ${humidity}%` });
+      }
+    }
+  }, []);
+
   const selectedSoil = soilTypeInfo[formData.soilType as keyof typeof soilTypeInfo];
   const selectedSeason = seasonInfo[formData.season as keyof typeof seasonInfo];
 
   return (
     <Card className="border-primary/20">
       <CardHeader className="pb-4">
-        <CardTitle className="flex items-center gap-2 text-xl">
-          <Sprout className="h-5 w-5 text-primary" />
-          Tell Us About Your Farm
-        </CardTitle>
+        <div className="flex items-center justify-between gap-4">
+          <CardTitle className="flex items-center gap-2 text-xl">
+            <Sprout className="h-5 w-5 text-primary" />
+            Tell Us About Your Farm
+          </CardTitle>
+          <div className="flex items-center gap-2">
+            <VoiceInput onResult={handleVoiceResult} />
+            {isBeginnerMode && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" size="icon">
+                      <Mic className="h-4 w-4 text-muted-foreground" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-xs">
+                    <p className="font-medium">Voice Commands</p>
+                    <p className="text-xs mt-1">Try saying:</p>
+                    <ul className="text-xs mt-1 space-y-0.5">
+                      <li>"North India black soil"</li>
+                      <li>"Kharif season wet land"</li>
+                      <li>"Temperature 30 degrees"</li>
+                      <li>"Rainfall 800 mm"</li>
+                    </ul>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
+          </div>
+        </div>
         {isBeginnerMode && (
           <p className="text-sm text-muted-foreground">
-            Fill in these details to get personalized crop recommendations. Hover over{" "}
-            <HelpCircle className="inline h-3 w-3" /> for help!
+            Fill in these details or use <strong>voice input</strong> 🎤 to get personalized crop recommendations. 
+            Hover over <HelpCircle className="inline h-3 w-3" /> for help!
           </p>
         )}
       </CardHeader>
