@@ -18,9 +18,23 @@ interface ForecastDay {
   tempMax: number;
   tempMin: number;
   precipitation: number;
+  precipitationProbability?: number;
   humidity: number;
+  windSpeed?: number;
   condition: string;
   icon: string;
+  isHistoricalBased?: boolean;
+}
+
+interface WeeklySummary {
+  week: string;
+  startDate: string;
+  endDate: string;
+  avgTempMax: number;
+  avgTempMin: number;
+  totalRain: number;
+  rainyDays: number;
+  avgHumidity: number;
 }
 
 interface WeatherStats {
@@ -28,6 +42,8 @@ interface WeatherStats {
   totalRainfall: number;
   humidityRange: string;
   farmingConditions: string;
+  rainyDays?: number;
+  heavyRainDays?: number;
 }
 
 interface Recommendation {
@@ -38,10 +54,14 @@ interface Recommendation {
 
 interface WeatherData {
   region: string;
+  coordinates?: { lat: number; lon: number };
+  forecastDays: number;
   current: CurrentWeather;
   forecast: ForecastDay[];
+  weeklySummary?: WeeklySummary[];
   stats: WeatherStats;
   recommendations: Recommendation[];
+  note?: string;
 }
 
 export function useWeather() {
@@ -49,13 +69,13 @@ export function useWeather() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchWeather = useCallback(async (region: string = "north-india") => {
+  const fetchWeather = useCallback(async (region: string = "north-india", days: number = 30) => {
     setIsLoading(true);
     setError(null);
 
     try {
       const { data: response, error: invokeError } = await supabase.functions.invoke("get-weather", {
-        body: { region },
+        body: { region, days },
       });
 
       if (invokeError) {
