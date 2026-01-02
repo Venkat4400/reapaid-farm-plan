@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,14 +9,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Sprout, CloudRain, Thermometer, Droplets, MapPin, Calendar, CloudSun, Loader2 } from "lucide-react";
+import { Sprout, CloudRain, Thermometer, Droplets, MapPin, Calendar, CloudSun, Loader2, Building, Home } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { usePrediction } from "@/hooks/usePrediction";
 import { useWeather } from "@/hooks/useWeather";
+import { indianStates, getDistrictsForState, getVillagesForDistrict } from "@/data/indianLocations";
 
-const crops = ["Wheat", "Rice", "Corn", "Soybean", "Potato", "Cotton", "Sugarcane", "Barley"];
-const soilTypes = ["Loamy", "Clay", "Sandy", "Silt", "Peat", "Chalky", "Saline"];
-const regions = ["North India", "South India", "East India", "West India", "Central India"];
+const crops = ["Wheat", "Rice", "Corn", "Soybean", "Potato", "Cotton", "Sugarcane", "Barley", "Jowar", "Bajra", "Maize", "Chickpea", "Groundnut", "Mustard", "Sunflower"];
+const soilTypes = ["Loamy", "Clay", "Sandy", "Silt", "Peat", "Chalky", "Saline", "Black", "Red", "Alluvial", "Laterite"];
 const seasons = ["Kharif (Monsoon)", "Rabi (Winter)", "Zaid (Summer)"];
 
 interface CropFormProps {
@@ -26,7 +26,9 @@ interface CropFormProps {
 interface FormData {
   crop: string;
   soilType: string;
-  region: string;
+  state: string;
+  district: string;
+  village: string;
   season: string;
   rainfall: string;
   temperature: string;
@@ -37,27 +39,51 @@ export function CropForm({ onPredict }: CropFormProps) {
   const [formData, setFormData] = useState<FormData>({
     crop: "",
     soilType: "",
-    region: "",
+    state: "",
+    district: "",
+    village: "",
     season: "",
     rainfall: "",
     temperature: "",
     humidity: "",
   });
   
+  const [districts, setDistricts] = useState<string[]>([]);
+  const [villages, setVillages] = useState<string[]>([]);
+  
   const { predict, isLoading } = usePrediction();
   const { fetchWeather, isLoading: isWeatherLoading } = useWeather();
 
+  // Update districts when state changes
+  useEffect(() => {
+    if (formData.state) {
+      const stateDistricts = getDistrictsForState(formData.state);
+      setDistricts(stateDistricts);
+      setFormData(prev => ({ ...prev, district: "", village: "" }));
+      setVillages([]);
+    }
+  }, [formData.state]);
+
+  // Update villages when district changes
+  useEffect(() => {
+    if (formData.district) {
+      const districtVillages = getVillagesForDistrict(formData.district);
+      setVillages(districtVillages);
+      setFormData(prev => ({ ...prev, village: "" }));
+    }
+  }, [formData.district]);
+
   const handleUseCurrentWeather = async () => {
-    if (!formData.region) {
+    if (!formData.state) {
       toast({
-        title: "Select a Region",
-        description: "Please select a region first to fetch weather data.",
+        title: "Select a State",
+        description: "Please select a state first to fetch weather data.",
         variant: "destructive",
       });
       return;
     }
 
-    const weatherData = await fetchWeather(formData.region);
+    const weatherData = await fetchWeather(formData.state);
     
     if (weatherData?.current) {
       setFormData((prev) => ({
@@ -69,7 +95,7 @@ export function CropForm({ onPredict }: CropFormProps) {
       
       toast({
         title: "Weather Data Loaded",
-        description: `Current weather for ${weatherData.region} has been applied.`,
+        description: `Current weather for ${weatherData.region} has been applied. ${weatherData.forecastDays}-day forecast available.`,
       });
     } else {
       toast({
@@ -83,20 +109,37 @@ export function CropForm({ onPredict }: CropFormProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.crop || !formData.soilType || !formData.region || !formData.season) {
+    if (!formData.crop || !formData.soilType || !formData.state || !formData.season) {
       toast({
         title: "Missing Information",
-        description: "Please fill in all required fields.",
+        description: "Please fill in all required fields (Crop, Soil, State, Season).",
         variant: "destructive",
       });
       return;
     }
 
-    const result = await predict(formData);
+    // Map state code to region for backward compatibility with prediction API
+    const stateData = indianStates.find(s => s.code === formData.state);
+    const regionMapping: Record<string, string> = {
+      "UP": "north-india", "HR": "north-india", "PB": "north-india", "RJ": "north-india", "DL": "north-india", "UK": "north-india", "HP": "north-india", "JK": "north-india", "LA": "north-india",
+      "TN": "south-india", "KL": "south-india", "KA": "south-india", "AP": "south-india", "TS": "south-india",
+      "WB": "east-india", "OD": "east-india", "BR": "east-india", "JH": "east-india", "AS": "east-india", "AR": "east-india", "MN": "east-india", "ML": "east-india", "MZ": "east-india", "NL": "east-india", "TR": "east-india", "SK": "east-india",
+      "MH": "west-india", "GJ": "west-india", "GA": "west-india",
+      "MP": "central-india", "CG": "central-india",
+    };
+    
+    const region = regionMapping[formData.state] || "central-india";
+
+    const result = await predict({
+      ...formData,
+      region,
+    });
     
     if (result && onPredict) {
       onPredict({
         ...formData,
+        region,
+        stateName: stateData?.name || formData.state,
         yield: result.predicted_yield,
         confidence: result.confidence,
         model_accuracy: result.model_accuracy,
@@ -153,27 +196,84 @@ export function CropForm({ onPredict }: CropFormProps) {
           </Select>
         </div>
 
-        {/* Region */}
+        {/* State Selection */}
         <div className="space-y-2">
-          <Label htmlFor="region" className="flex items-center gap-2">
+          <Label htmlFor="state" className="flex items-center gap-2">
             <MapPin className="h-4 w-4 text-primary" />
-            Region *
+            State *
           </Label>
           <Select
-            value={formData.region}
-            onValueChange={(value) => setFormData({ ...formData, region: value })}
+            value={formData.state}
+            onValueChange={(value) => setFormData({ ...formData, state: value })}
           >
-            <SelectTrigger id="region">
-              <SelectValue placeholder="Select region" />
+            <SelectTrigger id="state">
+              <SelectValue placeholder="Select state" />
             </SelectTrigger>
             <SelectContent>
-              {regions.map((region) => (
-                <SelectItem key={region} value={region.toLowerCase().replace(/\s+/g, "-")}>
-                  {region}
+              {indianStates.map((state) => (
+                <SelectItem key={state.code} value={state.code}>
+                  {state.name}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
+        </div>
+
+        {/* District Selection */}
+        <div className="space-y-2">
+          <Label htmlFor="district" className="flex items-center gap-2">
+            <Building className="h-4 w-4 text-primary" />
+            District
+          </Label>
+          <Select
+            value={formData.district}
+            onValueChange={(value) => setFormData({ ...formData, district: value })}
+            disabled={!formData.state || districts.length === 0}
+          >
+            <SelectTrigger id="district">
+              <SelectValue placeholder={formData.state ? "Select district" : "Select state first"} />
+            </SelectTrigger>
+            <SelectContent>
+              {districts.map((district) => (
+                <SelectItem key={district} value={district}>
+                  {district}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Village/Town Selection or Input */}
+        <div className="space-y-2">
+          <Label htmlFor="village" className="flex items-center gap-2">
+            <Home className="h-4 w-4 text-primary" />
+            Village / Town
+          </Label>
+          {villages.length > 0 ? (
+            <Select
+              value={formData.village}
+              onValueChange={(value) => setFormData({ ...formData, village: value })}
+              disabled={!formData.district}
+            >
+              <SelectTrigger id="village">
+                <SelectValue placeholder="Select village/town" />
+              </SelectTrigger>
+              <SelectContent>
+                {villages.map((village) => (
+                  <SelectItem key={village} value={village}>
+                    {village}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ) : (
+            <Input
+              id="village"
+              placeholder="Enter village/town name"
+              value={formData.village}
+              onChange={(e) => setFormData({ ...formData, village: e.target.value })}
+            />
+          )}
         </div>
 
         {/* Season */}
@@ -202,9 +302,9 @@ export function CropForm({ onPredict }: CropFormProps) {
         {/* Weather Auto-fill Section */}
         <div className="md:col-span-2 flex items-center gap-4 p-4 rounded-lg border border-dashed border-primary/30 bg-primary/5">
           <div className="flex-1">
-            <p className="text-sm font-medium text-foreground">Auto-fill from Weather</p>
+            <p className="text-sm font-medium text-foreground">Auto-fill from Real Weather API</p>
             <p className="text-xs text-muted-foreground">
-              Fetch current weather data for the selected region
+              Fetch accurate 30-day weather forecast for the selected state
             </p>
           </div>
           <Button
@@ -212,7 +312,7 @@ export function CropForm({ onPredict }: CropFormProps) {
             variant="outline"
             size="sm"
             onClick={handleUseCurrentWeather}
-            disabled={isWeatherLoading || !formData.region}
+            disabled={isWeatherLoading || !formData.state}
           >
             {isWeatherLoading ? (
               <>
