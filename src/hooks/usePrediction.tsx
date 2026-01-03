@@ -6,6 +6,8 @@ interface PredictionInput {
   crop: string;
   soilType: string;
   region: string;
+  state?: string;
+  district?: string;
   season: string;
   rainfall: string;
   temperature: string;
@@ -23,6 +25,8 @@ interface PredictionResult {
   };
   crop: string;
   created_at: string;
+  local_data_used?: boolean;
+  similar_records_count?: number;
 }
 
 export function usePrediction() {
@@ -41,6 +45,11 @@ export function usePrediction() {
         throw new Error("Please log in to make predictions");
       }
 
+      // Get state name from state code
+      const { indianStates } = await import("@/data/indianLocations");
+      const stateData = indianStates.find(s => s.code === input.state);
+      const stateName = stateData?.name || input.state;
+
       const response = await supabase.functions.invoke("predict-yield", {
         headers: {
           Authorization: `Bearer ${session.access_token}`,
@@ -49,6 +58,8 @@ export function usePrediction() {
           crop: input.crop,
           soil_type: input.soilType,
           region: input.region,
+          state: stateName,
+          district: input.district,
           season: input.season,
           rainfall: parseFloat(input.rainfall) || 150,
           temperature: parseFloat(input.temperature) || 28,
@@ -67,9 +78,13 @@ export function usePrediction() {
       const prediction = response.data.prediction as PredictionResult;
       setResult(prediction);
 
+      const localDataInfo = prediction.local_data_used 
+        ? ` (Based on ${prediction.similar_records_count} local records)` 
+        : "";
+      
       toast({
         title: "Prediction Complete!",
-        description: `Estimated yield: ${prediction.predicted_yield.toLocaleString()} kg/ha`,
+        description: `Estimated yield: ${prediction.predicted_yield.toLocaleString()} kg/ha${localDataInfo}`,
       });
 
       return prediction;
