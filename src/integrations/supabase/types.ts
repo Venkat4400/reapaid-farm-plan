@@ -14,6 +14,66 @@ export type Database = {
   }
   public: {
     Tables: {
+      crop_yield_data: {
+        Row: {
+          area_hectares: number | null
+          created_at: string
+          crop: string
+          district: string | null
+          fertilizer_used: string | null
+          humidity: number
+          id: string
+          irrigation_type: string | null
+          rainfall: number
+          region: string
+          season: string
+          soil_type: string
+          state: string | null
+          temperature: number
+          updated_at: string
+          year: number | null
+          yield: number
+        }
+        Insert: {
+          area_hectares?: number | null
+          created_at?: string
+          crop: string
+          district?: string | null
+          fertilizer_used?: string | null
+          humidity: number
+          id?: string
+          irrigation_type?: string | null
+          rainfall: number
+          region: string
+          season: string
+          soil_type: string
+          state?: string | null
+          temperature: number
+          updated_at?: string
+          year?: number | null
+          yield: number
+        }
+        Update: {
+          area_hectares?: number | null
+          created_at?: string
+          crop?: string
+          district?: string | null
+          fertilizer_used?: string | null
+          humidity?: number
+          id?: string
+          irrigation_type?: string | null
+          rainfall?: number
+          region?: string
+          season?: string
+          soil_type?: string
+          state?: string | null
+          temperature?: number
+          updated_at?: string
+          year?: number | null
+          yield?: number
+        }
+        Relationships: []
+      }
       model_stats: {
         Row: {
           created_at: string
