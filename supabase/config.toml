@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.get-model-stats]
 verify_jwt = false
+
+[functions.import-crop-data]
+verify_jwt = false

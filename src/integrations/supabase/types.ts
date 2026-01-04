@@ -16,58 +16,67 @@ export type Database = {
     Tables: {
       crop_yield_data: {
         Row: {
+          annual_rainfall: number | null
           area_hectares: number | null
           created_at: string
           crop: string
           district: string | null
           fertilizer_used: string | null
-          humidity: number
+          humidity: number | null
           id: string
           irrigation_type: string | null
+          pesticide: number | null
+          production: number | null
           rainfall: number
-          region: string
+          region: string | null
           season: string
-          soil_type: string
+          soil_type: string | null
           state: string | null
-          temperature: number
+          temperature: number | null
           updated_at: string
           year: number | null
           yield: number
         }
         Insert: {
+          annual_rainfall?: number | null
           area_hectares?: number | null
           created_at?: string
           crop: string
           district?: string | null
           fertilizer_used?: string | null
-          humidity: number
+          humidity?: number | null
           id?: string
           irrigation_type?: string | null
+          pesticide?: number | null
+          production?: number | null
           rainfall: number
-          region: string
+          region?: string | null
           season: string
-          soil_type: string
+          soil_type?: string | null
           state?: string | null
-          temperature: number
+          temperature?: number | null
           updated_at?: string
           year?: number | null
           yield: number
         }
         Update: {
+          annual_rainfall?: number | null
           area_hectares?: number | null
           created_at?: string
           crop?: string
           district?: string | null
           fertilizer_used?: string | null
-          humidity?: number
+          humidity?: number | null
           id?: string
           irrigation_type?: string | null
+          pesticide?: number | null
+          production?: number | null
           rainfall?: number
-          region?: string
+          region?: string | null
           season?: string
-          soil_type?: string
+          soil_type?: string | null
           state?: string | null
-          temperature?: number
+          temperature?: number | null
           updated_at?: string
           year?: number | null
           yield?: number

@@ -14,6 +14,7 @@ import History from "./pages/History";
 import Weather from "./pages/Weather";
 import Recommendations from "./pages/Recommendations";
 import Auth from "./pages/Auth";
+import DataImport from "./pages/DataImport";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -50,6 +51,7 @@ const App = () => (
                   />
                   <Route path="/weather" element={<Weather />} />
                   <Route path="/recommendations" element={<Recommendations />} />
+                  <Route path="/admin/import" element={<DataImport />} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </main>
